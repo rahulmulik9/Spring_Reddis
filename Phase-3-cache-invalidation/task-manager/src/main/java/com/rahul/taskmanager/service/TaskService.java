@@ -9,6 +9,7 @@ import com.rahul.taskmanager.exception.TaskNotFoundException;
 import com.rahul.taskmanager.repository.TaskRepository;
 import com.rahul.taskmanager.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
@@ -60,7 +61,7 @@ public class TaskService {
 
     // The fix: call SimpleKeyGenerator.generateKey(...) ourselves, passing only #id and #username (skipping #request),
     // so we reconstruct the SAME key  getTaskById used when it originally cached this entry.
-    @CacheEvict(value = "tasks", key = "T(org.springframework.cache.interceptor.SimpleKeyGenerator).generateKey(#id, #username)")
+    @CachePut(value = "tasks", key = "T(org.springframework.cache.interceptor.SimpleKeyGenerator).generateKey(#id, #username)")
     public TaskResponse updateTask(Long id, TaskRequest request, String username) {
         Task task = findOwnedTask(id, username);
 
