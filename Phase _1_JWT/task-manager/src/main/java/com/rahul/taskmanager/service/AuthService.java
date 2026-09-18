@@ -36,7 +36,7 @@ public class AuthService {
 
         userRepository.save(user);
 
-        String token = jwtService.generateToken(getSpringSecurityUser(user));
+        String token = jwtService.generateToken(user.getUsername(), user.getRole().name());
 
         return AuthResponse.builder()
                 .token(token)
@@ -53,7 +53,7 @@ public class AuthService {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        String token = jwtService.generateToken(getSpringSecurityUser(user));
+        String token = jwtService.generateToken(user.getUsername(), user.getRole().name());
 
         return AuthResponse.builder()
                 .token(token)
@@ -62,17 +62,4 @@ public class AuthService {
                 .build();
     }
 
-    // Converts our domain User entity into a Spring Security UserDetails object.
-    // Using Spring Security's built-in User class here for simplicity, since it's
-    // enough to carry username, password, and role/authorities for auth purposes.
-    // A user can instead implement their own UserDetails entity class (e.g. CustomUserDetails)
-    // if they need to carry extra fields (like id) through the SecurityContext —
-    // that class just needs to implement UserDetails from Spring Security.
-    private UserDetails getSpringSecurityUser(User user) {
-        return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getUsername())
-                .password(user.getPassword())
-                .roles(user.getRole().name())
-                .build();
-    }
 }

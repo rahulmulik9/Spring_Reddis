@@ -25,18 +25,18 @@ public class JwtService {
         return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
     }
 
-    public String generateToken(UserDetails userDetails) {
+    public String generateToken(String username, String role) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMs);
 
         return Jwts.builder()
-                .subject(userDetails.getUsername())
+                .subject(username)
+                .claim("role", role)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
-
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
         String username = extractUsername(token);
@@ -49,6 +49,7 @@ public class JwtService {
 
         return username.equals(userDetails.getUsername()) && expiration.after(new Date());
     }
+
     public Claims extractClaims(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())
