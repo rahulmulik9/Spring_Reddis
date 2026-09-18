@@ -5,6 +5,7 @@
     <option name="originalFiles">
       <list>
         <option value="$PROJECT_DIR$/Phase_1_Basic_App/task-manager/pom.xml" />
+        <option value="$PROJECT_DIR$/Phase-2-redis-setup/task-manager/pom.xml" />
       </list>
     </option>
   </component>
