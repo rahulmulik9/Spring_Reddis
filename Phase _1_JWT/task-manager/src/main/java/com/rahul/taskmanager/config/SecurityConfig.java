@@ -29,6 +29,7 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    //setting password encode. Usually don't need this to declared but it's good to have
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
