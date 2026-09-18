@@ -1,0 +1,24 @@
+services:
+  taskmanager-db:
+    image: postgres:18
+    container_name: taskmanager-db
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: taskmanagerdb
+    ports:
+      - "5433:5432"
+    volumes:
+      - taskmanager-db-data:/var/lib/postgresql
+
+  taskmanager-redis:
+    image: redis:7
+    container_name: taskmanager-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - taskmanager-redis-data:/data
+
+volumes:
+  taskmanager-db-data:
+  taskmanager-redis-data:
