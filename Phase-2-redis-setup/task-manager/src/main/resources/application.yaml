@@ -25,3 +25,12 @@ spring:
   sql:
     init:
       mode: always
+
+management:
+  endpoint:
+    health:
+      show-details: always
+
+jwt:
+  secret: "replace-this-with-a-long-random-base64-secret-min-256-bits"
+  expiration-ms: 3600000   # 1 hour

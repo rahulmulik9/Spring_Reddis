@@ -9,6 +9,7 @@ import com.rahul.taskmanager.exception.TaskNotFoundException;
 import com.rahul.taskmanager.repository.TaskRepository;
 import com.rahul.taskmanager.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -42,6 +43,7 @@ public class TaskService {
                 .toList();
     }
 
+    @Cacheable("tasks")
     public TaskResponse getTaskById(Long id, String username) {
         Task task = findOwnedTask(id, username);
         return toResponse(task);
