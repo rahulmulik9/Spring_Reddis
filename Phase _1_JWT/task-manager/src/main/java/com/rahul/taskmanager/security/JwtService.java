@@ -3,7 +3,6 @@ package com.rahul.taskmanager.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -22,9 +21,8 @@ public class JwtService {
     private long expirationMs;
 
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
+        return Keys.hmacShaKeyFor(secret.getBytes());
     }
-
     public String generateToken(String username, String role) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMs);
