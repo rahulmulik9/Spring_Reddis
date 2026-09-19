@@ -7,8 +7,15 @@ import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.cache.RedisCacheWriter;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.GenericJacksonJsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.RedisSerializer;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
+import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import tools.jackson.databind.jsontype.PolymorphicTypeValidator;
+import tools.jackson.databind.jsontype.PolymorphicTypeValidator;
+import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 
 import java.time.Duration;
 
@@ -20,17 +27,47 @@ public class CacheConfig {
     public RedisCacheManager cacheManager(RedisConnectionFactory redisConnectionFactory) {
 
         RedisCacheConfiguration cacheConfiguration = RedisCacheConfiguration.defaultCacheConfig()
-                             .entryTtl(Duration.ofMinutes(10))
-                             .disableCachingNullValues()
-                             .serializeValuesWith(
-                                     RedisSerializationContext.SerializationPair.fromSerializer(RedisSerializer.json())
-              );
+                .entryTtl(Duration.ofMinutes(10))
+                .disableCachingNullValues()
+                .serializeValuesWith(
+                        RedisSerializationContext.SerializationPair.fromSerializer(RedisSerializer.json())
+                );
 
         RedisCacheWriter cacheWriter =  RedisCacheWriter.nonLockingRedisCacheWriter(redisConnectionFactory);
 
         return RedisCacheManager.builder(cacheWriter)
                 .cacheDefaults(cacheConfiguration)
                 .build();
+    }
+
+    // --- Phase 4: manual RedisTemplate, separate from the CacheManager above ---
+
+
+    @Bean
+    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory redisConnectionFactory) {
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
+        template.setConnectionFactory(redisConnectionFactory);
+
+        PolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
+                .allowIfSubType("com.rahul.taskmanager")   // only trust our own package's classes
+                .build();
+
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(
+                GenericJacksonJsonRedisSerializer.builder()
+                        .enableDefaultTyping(ptv)
+                        .build()
+        );
+
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setHashValueSerializer(
+                GenericJacksonJsonRedisSerializer.builder()
+                        .enableDefaultTyping(ptv)
+                        .build()
+        );
+
+        template.afterPropertiesSet();
+        return template;
     }
 }
 

@@ -13,6 +13,7 @@ import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
+import org.springframework.data.redis.core.RedisTemplate;
 
 import java.util.List;
 
@@ -22,6 +23,7 @@ public class TaskService {
 
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     public TaskResponse createTask(TaskRequest request, String username) {
         User owner = getUserByUsername(username);
@@ -45,14 +47,36 @@ public class TaskService {
                 .toList();
     }
 
-    @Cacheable("tasks")
+   /* @Cacheable("tasks")
     public TaskResponse getTaskById(Long id, String username) {
         Task task = findOwnedTask(id, username);
         return toResponse(task);
+    }*/
+
+    // Manual equivalent of getTaskById(id, username) above — same behavior,
+    // but written by hand instead of relying on @Cacheable to do it for us.
+    // Key includes username (not just id) for the same reason the annotated
+    // version's SimpleKey[id, username] does: without it, a cache hit would
+    // skip findOwnedTask's ownership check and could leak another user's task.
+    // (Key format is intentionally simple here — Step 2 covers proper key design.)
+    public TaskResponse getTaskByIdManual(Long id, String username) {
+        String key = "task:" + id + ":" + username;
+
+        TaskResponse cached = (TaskResponse) redisTemplate.opsForValue().get(key);
+        if (cached != null) {
+            return cached;
+        }
+
+        Task task = findOwnedTask(id, username);
+        TaskResponse response = toResponse(task);
+
+        redisTemplate.opsForValue().set(key, response);
+
+        return response;
     }
 
 
-    // Manually rebuild the exact same cache key that @Cacheable("tasks") on getTaskById(id, username) generates by default.
+   // Manually rebuild the exact same cache key that @Cacheable("tasks") on getTaskById(id, username) generates by default.
     // Why this is needed: Spring's default key generator (SimpleKeyGenerator) builds a cache key from ALL of a method's parameters, in order.
     // getTaskById(id, username)      -> key = SimpleKey [id, username]
     // updateTask(id, request, username) -> if left to the default, key would be SimpleKey [id, request, username]
@@ -72,6 +96,7 @@ public class TaskService {
         Task updated = taskRepository.save(task);
         return toResponse(updated);
     }
+
 
     @CacheEvict("tasks")
     public void deleteTask(Long id, String username) {

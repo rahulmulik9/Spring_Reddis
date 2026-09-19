@@ -31,7 +31,7 @@ public class TaskController {
 
     @GetMapping("/{id}")
     public ResponseEntity<TaskResponse> getTaskById(@PathVariable Long id, Authentication authentication) {
-        return ResponseEntity.ok(taskService.getTaskById(id, authentication.getName()));
+        return ResponseEntity.ok(taskService.getTaskByIdManual(id, authentication.getName()));
     }
 
     @PutMapping("/{id}")
