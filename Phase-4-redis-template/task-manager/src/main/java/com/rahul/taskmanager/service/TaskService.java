@@ -60,7 +60,7 @@ public class TaskService {
     // skip findOwnedTask's ownership check and could leak another user's task.
     // (Key format is intentionally simple here — Step 2 covers proper key design.)
     public TaskResponse getTaskByIdManual(Long id, String username) {
-        String key = "task:" + id + ":" + username;
+        String key = buildTaskKey(id, username);
 
         TaskResponse cached = (TaskResponse) redisTemplate.opsForValue().get(key);
         if (cached != null) {
@@ -131,5 +131,10 @@ public class TaskService {
                 .completed(task.isCompleted())
                 .createdAt(task.getCreatedAt())
                 .build();
+    }
+
+    // Centralizes the key format decided in Step 2.1: task:<id>:<username>.
+    private String buildTaskKey(Long id, String username) {
+        return "task:" + id + ":" + username;
     }
 }
