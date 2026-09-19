@@ -137,4 +137,25 @@ public class TaskService {
     private String buildTaskKey(Long id, String username) {
         return "task:" + id + ":" + username;
     }
+
+    // DELIBERATELY UNSAFE — no locking yet.
+    // Step 1: we want to see the race condition happen before we fix it in Step 2.
+    // Bug: two concurrent requests can both pass the "already claimed?" check
+    // before either one writes, so both think they succeeded.
+    public TaskResponse claimTask(Long id, String username) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new TaskNotFoundException("Task not found with id: " + id));
+
+        if (task.getClaimedBy() != null) {
+            throw new TaskAccessDeniedException("Task already claimed");
+        }
+
+        // <-- the race window: another thread can slip in here between the check above and the write below --v
+
+        User claimer = getUserByUsername(username);
+        task.setClaimedBy(claimer);
+
+        Task saved = taskRepository.save(task);
+        return toResponse(saved);
+    }
 }
