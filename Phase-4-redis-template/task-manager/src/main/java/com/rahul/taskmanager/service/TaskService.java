@@ -161,7 +161,7 @@ public class TaskService {
     public TaskResponse claimTask(Long id, String username) {
         String lockKey = "lock:task:" + id;
         String lockValue = java.util.UUID.randomUUID().toString();
-        Duration lockTtl = Duration.ofSeconds(5); // revisited properly in Step 2.3
+        Duration lockTtl = Duration.ofSeconds(2); // generous vs. expected ~tens-of-ms execution time
 
         boolean acquired = tryAcquireLock(lockKey, lockValue, lockTtl);
         if (!acquired) {
