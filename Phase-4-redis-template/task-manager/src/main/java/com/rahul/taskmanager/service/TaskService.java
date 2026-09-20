@@ -15,6 +15,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.data.redis.core.RedisTemplate;
 
+import java.time.Duration;
 import java.util.List;
 
 @Service
@@ -137,4 +138,52 @@ public class TaskService {
     private String buildTaskKey(Long id, String username) {
         return "task:" + id + ":" + username;
     }
+
+
+    // Acquires a lock by trying to SET a key only if it doesn't already exist, with an expiry attached in the same atomic call.
+    // If another request already holds the lock, setIfAbsent returns false immediately — this
+    // request does NOT block/wait, it just knows someone else got there first.
+    // lockValue should be unique per lock attempt (see 2.2) so we can safely verify we're the one releasing our own lock, not someone else's.
+    private boolean tryAcquireLock(String lockKey, String lockValue, Duration ttl) {
+        Boolean acquired = redisTemplate.opsForValue().setIfAbsent(lockKey, lockValue, ttl);
+        return Boolean.TRUE.equals(acquired);
+    }
+
+    private void releaseLock(String lockKey, String lockValue) {
+        Object currentValue = redisTemplate.opsForValue().get(lockKey);
+        if (lockValue.equals(currentValue)) {
+            redisTemplate.delete(lockKey);
+        }
+        // If currentValue doesn't match, we don't own this lock anymore
+        // (it likely expired and someone else acquired it) — do NOT delete a lock we don't actually hold.
+    }
+
+    public TaskResponse claimTask(Long id, String username) {
+        String lockKey = "lock:task:" + id;
+        String lockValue = java.util.UUID.randomUUID().toString();
+        Duration lockTtl = Duration.ofSeconds(5); // revisited properly in Step 2.3
+
+        boolean acquired = tryAcquireLock(lockKey, lockValue, lockTtl);
+        if (!acquired) {
+            throw new TaskAccessDeniedException("Task is being claimed by someone else, try again");
+        }
+
+        try {
+            Task task = taskRepository.findById(id)
+                    .orElseThrow(() -> new TaskNotFoundException("Task not found with id: " + id));
+
+            if (task.getClaimedBy() != null) {
+                throw new TaskAccessDeniedException("Task already claimed");
+            }
+
+            User claimer = getUserByUsername(username);
+            task.setClaimedBy(claimer);
+
+            Task saved = taskRepository.save(task);
+            return toResponse(saved);
+        } finally {
+            releaseLock(lockKey, lockValue);
+        }
+    }
+
 }
