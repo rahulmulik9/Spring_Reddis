@@ -44,9 +44,4 @@ public class TaskController {
         taskService.deleteTask(id, authentication.getName());
         return ResponseEntity.noContent().build();
     }
-
-    @PostMapping("/{id}/claim")
-    public ResponseEntity<TaskResponse> claimTask(@PathVariable Long id, Authentication authentication) {
-        return ResponseEntity.ok(taskService.claimTask(id, authentication.getName()));
-    }
 }
